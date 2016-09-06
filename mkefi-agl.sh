@@ -294,7 +294,7 @@ ROOTFS_DISKID=$(fdisk --list "$DEVICE" | grep -e "Disk identifier" | sed -n 's/^
 if [ $ROOTFS_DISKID == "" ]; then
     die "Failed to read DISKID"
 fi
-ROOTFS_PARTUUID="$ROOTFS_DISKID-2"
+ROOTFS_PARTUUID="$ROOTFS_DISKID-02"
 debug "PARTUUID for ROOTFS in grub.conf is $ROOTFS_PARTUUID"
 
 if [ $DEBUG -eq 1 ]; then
