@@ -287,8 +287,14 @@ parted -s $DEVICE set 1 boot on >$OUT 2>&1 || die "Failed to enable boot flag"
 debug "Creating ROOTFS partition on $ROOTFS"
 parted -s $DEVICE mkpart primary $ROOTFS_START $ROOTFS_END >$OUT 2>&1 || die "Failed to create ROOTFS partition"
 
-
-ROOTFS_PARTUUID=$(blkid |grep -e "$ROOTFS" |sed -n 's/^.*PARTUUID=/PARTUUID=/p')
+# as blkid does not provide PARTUUID on Ubuntu LTS 14.04 we myst hack via fdisk
+#ROOTFS_PARTUUID=$(blkid |grep -e "$ROOTFS" |sed -n 's/^.*PARTUUID=/PARTUUID=/p')
+export LC_ALL=C
+ROOTFS_DISKID=$(fdisk --list "$DEVICE" | grep -e "Disk identifier" | sed -n 's/^.*Disk identifier: 0x/PARTUUID=/p')
+if [ $ROOTFS_DISKID == "" ]; then
+    die "Failed to read DISKID"
+fi
+ROOTFS_PARTUUID="$ROOTFS_DISKID-2"
 debug "PARTUUID for ROOTFS in grub.conf is $ROOTFS_PARTUUID"
 
 if [ $DEBUG -eq 1 ]; then
