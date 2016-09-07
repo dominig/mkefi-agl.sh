@@ -290,7 +290,7 @@ parted -s $DEVICE mkpart primary $ROOTFS_START $ROOTFS_END >$OUT 2>&1 || die "Fa
 # as blkid does not provide PARTUUID on Ubuntu LTS 14.04 we myst hack via fdisk
 #ROOTFS_PARTUUID=$(blkid |grep -e "$ROOTFS" |sed -n 's/^.*PARTUUID=/PARTUUID=/p')
 export LC_ALL=C
-ROOTFS_DISKID=$(fdisk --list "$DEVICE" | grep -e "Disk identifier" | sed -n 's/^.*Disk identifier: 0x/PARTUUID=/p')
+ROOTFS_DISKID=$(fdisk -l "$DEVICE" | grep -e "Disk identifier" | sed -n 's/^.*Disk identifier: 0x/PARTUUID=/p')
 if [ $ROOTFS_DISKID == "" ]; then
     die "Failed to read DISKID"
 fi
