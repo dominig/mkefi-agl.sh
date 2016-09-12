@@ -1,12 +1,16 @@
-Install AGL on a removable device to boot on IA UEFI based computer
-In particular is can create USB or SD bootable support for Minnowboard
+## Introduction
+This script will install the AGL distribution on a removable device to boot on Intel UEFI-based computer.
 
-Usage: mkefi-agl.sh [-v] HDDIMG REMOVABLE_DEVICE
-       -v: Verbose debug
-       HDDIMG: The hddimg file to generate the efi disk from
-       REMOVABLE_DEVICE: The block device to write the image to, e.g. /dev/sdh
-ex:
-   mkefi-agl.sh   agl-demo-platform-intel-corei7-64.hddimg /dev/sdd
+In particular it can create a USB or SD bootable support for (MinnowBoard)[www.minnowboard.org].
 
-DOCUMENTATION
-https://wiki.automotivelinux.org/agl-distro/developer_resources_intel
+Usage:
+
+    mkefi-agl.sh [-v] HDDIMG REMOVABLE_DEVICE
+       -v: verbose debug
+       HDDIMG: the hddimg file to generate the efi disk from
+       REMOVABLE_DEVICE: the block device to write the image to, e.g. /dev/sdh
+
+Example: `mkefi-agl.sh agl-demo-platform-intel-corei7-64.hddimg /dev/sdd`
+
+## Documentation
+Additional documentation: https://wiki.automotivelinux.org/agl-distro/developer_resources_intel
