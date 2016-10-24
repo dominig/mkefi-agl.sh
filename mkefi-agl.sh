@@ -17,7 +17,7 @@
 # along with this program;  if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
-# Modiciation from mkefidisk.sh provided by the Yocto project by Dominig 
+# Modification from mkefidisk.sh provided by the Yocto project by Dominig 
 # to install Automotive Grade Linux (AGL) on Minnowboard and any PC with UEFI boot
 #
 # changes
@@ -366,34 +366,34 @@ if [ -e "$GRUB_CFG" ]; then
 fi
 
 # look for a systemd-boot loader.conf file and create a default boot entry
-SYSTEDBOOT_CFG="$BOOTFS_MNT/loader/loader.conf"
-SYSTEDBOOT_BOOT="$BOOTFS_MNT/loader/entries/boot.conf"
-SYSTEDBOOT_DEBUG="$BOOTFS_MNT/loader/entries/debug.conf"
-if [ -e "$SYSTEDBOOT_CFG" ]; then
+SYSTEMDBOOT_CFG="$BOOTFS_MNT/loader/loader.conf"
+SYSTEMDBOOT_BOOT="$BOOTFS_MNT/loader/entries/boot.conf"
+SYSTEMDBOOT_DEBUG="$BOOTFS_MNT/loader/entries/debug.conf"
+if [ -e "$SYSTEMDBOOT_CFG" ]; then
 	info "Configuring SYSTEMD-BOOT"
 	# Delete any existing entries
 	rm -rf "$BOOTFS_MNT/loader/entries" >$OUT 2>&1
 	mkdir  "$BOOTFS_MNT/loader/entries" >$OUT 2>&1
 	# create the new loader.conf file
-	echo "# Created by mkefi-agl.sh script `date`" > $SYSTEDBOOT_CFG
-	echo "default boot" >> $SYSTEDBOOT_CFG
-	echo "timout 5" >> $SYSTEDBOOT_CFG
+	echo "# Created by mkefi-agl.sh script `date`" > $SYSTEMDBOOT_CFG
+	echo "default boot" >> $SYSTEMDBOOT_CFG
+	echo "timout 5" >> $SYSTEMDBOOT_CFG
 	# create the boot entry
-	echo "title boot"  > $SYSTEDBOOT_BOOT
-	echo "linux /vmlinuz" >> $SYSTEDBOOT_BOOT
-	echo "initrd /initrd" >> $SYSTEDBOOT_BOOT
-	echo "options LABEL=boot root=$ROOTFS_PARTUUID ro quiet rootwait console=ttyS0,115200 console=tty0" >> $SYSTEDBOOT_BOOT
+	echo "title boot"  > $SYSTEMDBOOT_BOOT
+	echo "linux /vmlinuz" >> $SYSTEMDBOOT_BOOT
+	echo "initrd /initrd" >> $SYSTEMDBOOT_BOOT
+	echo "options LABEL=boot root=$ROOTFS_PARTUUID ro quiet rootwait console=ttyS0,115200 console=tty0" >> $SYSTEMDBOOT_BOOT
 	# create the debug entry
-	echo "title debug" > $SYSTEDBOOT_DEBUG
-	echo "linux /vmlinuz" >> $SYSTEDBOOT_DEBUG
-	echo "initrd /initrd" >> $SYSTEDBOOT_DEBUG
-	echo "options LABEL=debug root=$ROOTFS_PARTUUID ro debug rootwait console=ttyS0,115200 console=tty0" >> $SYSTEDBOOT_DEBUG
+	echo "title debug" > $SYSTEMDBOOT_DEBUG
+	echo "linux /vmlinuz" >> $SYSTEMDBOOT_DEBUG
+	echo "initrd /initrd" >> $SYSTEMDBOOT_DEBUG
+	echo "options LABEL=debug root=$ROOTFS_PARTUUID ro debug rootwait console=ttyS0,115200 console=tty0" >> $SYSTEMDBOOT_DEBUG
 	
 fi	
 
 
 # Ensure we have at least one EFI bootloader configured
-if [ ! -e $GRUB_CFG ]  && [ ! -e $SYSTEDBOOT_CFG ] ; then
+if [ ! -e $GRUB_CFG ]  && [ ! -e $SYSTEMDBOOT_CFG ] ; then
 	die "No EFI bootloader configuration found"
 fi
 
