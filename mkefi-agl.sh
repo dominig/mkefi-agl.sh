@@ -381,12 +381,16 @@ if [ -e "$SYSTEMDBOOT_CFG" ]; then
 	# create the boot entry
 	echo "title boot"  > $SYSTEMDBOOT_BOOT
 	echo "linux /vmlinuz" >> $SYSTEMDBOOT_BOOT
-	echo "initrd /initrd" >> $SYSTEMDBOOT_BOOT
+        if [ -f $HDDIMG_MNT/initrd ]; then
+	     echo "initrd /initrd" >> $SYSTEMDBOOT_BOOT
+        fi
 	echo "options LABEL=boot root=$ROOTFS_PARTUUID ro quiet rootwait console=ttyS0,115200 console=tty0" >> $SYSTEMDBOOT_BOOT
 	# create the debug entry
 	echo "title debug" > $SYSTEMDBOOT_DEBUG
 	echo "linux /vmlinuz" >> $SYSTEMDBOOT_DEBUG
-	echo "initrd /initrd" >> $SYSTEMDBOOT_DEBUG
+        if [ -f $HDDIMG_MNT/initrd ]; then
+        	echo "initrd /initrd" >> $SYSTEMDBOOT_DEBUG
+        fi
 	echo "options LABEL=debug root=$ROOTFS_PARTUUID ro debug rootwait console=ttyS0,115200 console=tty0" >> $SYSTEMDBOOT_DEBUG
 	
 fi	
