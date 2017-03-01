@@ -37,8 +37,8 @@ OUT="/dev/null"
 #
 # Defaults
 #
-# 20 Mb for the boot partition
-BOOT_SIZE=20
+# 100 Mb for the boot partition
+BOOT_SIZE=100
 
 # Cleanup after die()
 cleanup() {
@@ -295,7 +295,7 @@ if [ $ROOTFS_DISKID == "" ]; then
     die "Failed to read DISKID"
 fi
 ROOTFS_PARTUUID="$ROOTFS_DISKID-02"
-debug "PARTUUID for ROOTFS in grub.conf is $ROOTFS_PARTUUID"
+debug "PARTUUID for ROOTFS is $ROOTFS_PARTUUID"
 
 if [ $DEBUG -eq 1 ]; then
 	parted -s $DEVICE print
@@ -362,37 +362,27 @@ if [ -e "$GRUB_CFG" ]; then
 	sed -i "s/ LABEL=[^ ]*/ /" $GRUB_CFG
 
 	sed -i "s@ root=[^ ]*@ @" $GRUB_CFG
-	sed -i "s@vmlinuz @vmlinuz root=$ROOTFS_PARTUUID ro quiet rootwait @" $GRUB_CFG
+	sed -i "s@vmlinuz @vmlinuz root=$ROOTFS_PARTUUID @" $GRUB_CFG
 fi
 
 # look for a systemd-boot loader.conf file and create a default boot entry
 SYSTEMDBOOT_CFG="$BOOTFS_MNT/loader/loader.conf"
-SYSTEMDBOOT_BOOT="$BOOTFS_MNT/loader/entries/boot.conf"
-SYSTEMDBOOT_DEBUG="$BOOTFS_MNT/loader/entries/debug.conf"
 if [ -e "$SYSTEMDBOOT_CFG" ]; then
 	info "Configuring SYSTEMD-BOOT"
-	# Delete any existing entries
-	rm -rf "$BOOTFS_MNT/loader/entries" >$OUT 2>&1
-	mkdir  "$BOOTFS_MNT/loader/entries" >$OUT 2>&1
-	# create the new loader.conf file
-	echo "# Created by mkefi-agl.sh script `date`" > $SYSTEMDBOOT_CFG
-	echo "default boot" >> $SYSTEMDBOOT_CFG
-	echo "timout 5" >> $SYSTEMDBOOT_CFG
-	# create the boot entry
-	echo "title boot"  > $SYSTEMDBOOT_BOOT
-	echo "linux /vmlinuz" >> $SYSTEMDBOOT_BOOT
-        if [ -f $HDDIMG_MNT/initrd ]; then
-	     echo "initrd /initrd" >> $SYSTEMDBOOT_BOOT
-        fi
-	echo "options LABEL=boot root=$ROOTFS_PARTUUID ro quiet rootwait console=ttyS0,115200 console=tty0" >> $SYSTEMDBOOT_BOOT
-	# create the debug entry
-	echo "title debug" > $SYSTEMDBOOT_DEBUG
-	echo "linux /vmlinuz" >> $SYSTEMDBOOT_DEBUG
-        if [ -f $HDDIMG_MNT/initrd ]; then
-        	echo "initrd /initrd" >> $SYSTEMDBOOT_DEBUG
-        fi
-	echo "options LABEL=debug root=$ROOTFS_PARTUUID ro debug rootwait console=ttyS0,115200 console=tty0" >> $SYSTEMDBOOT_DEBUG
-	
+    SYSTEMDBOOT_BOOT="$BOOTFS_MNT/loader/entries/boot.conf"
+    SYSTEMDBOOT_DEBUG="$BOOTFS_MNT/loader/entries/debug.conf"
+    # Delete the install entry
+	sed -i "/menuentry 'install'/,/^}/d" $SYSTEMDBOOT_CFG
+	rm -rf "$BOOTFS_MNT/loader/entries/install.conf" >$OUT 2>&1
+	# Add PARTUUID to the boot entry file
+	if [ ! -e "$SYSTEMDBOOT_BOOT" ]; then
+        die "no boot.conf entry found in systemd-boot directories"
+    fi
+	# Delete any LABEL= strings
+	sed -i "s/ LABEL=[^ ]*/ /" $SYSTEMDBOOT_BOOT
+
+	sed -i "s@ root=[^ ]*@ @" $SYSTEMDBOOT_BOOT
+	sed -i "s@options @options root=$ROOTFS_PARTUUID @" $SYSTEMDBOOT_BOOT	
 fi	
 
 
