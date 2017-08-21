@@ -17,7 +17,7 @@
 # along with this program;  if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
-# Modification from mkefidisk.sh provided by the Yocto project by Dominig 
+# Modification from mkefidisk.sh provided by the Yocto project by Dominig
 # to install Automotive Grade Linux (AGL) on Minnowboard and any PC with UEFI boot
 #
 # changes
@@ -26,7 +26,7 @@
 #         - create a grub config with PARTUID to ease boot from various devices automaticaly
 #         - add a UEFI startup.nsh script for autoboot
 #         - does not allocate swap
-#         
+#
 
 LANG=C
 
@@ -167,7 +167,7 @@ unmount() {
 if [ "$1" != "-v" ] && [ $# -ne 2 ]; then
         usage
 fi
-if [ "$1" == "-v" ] && [ $# -ne 3 ]; then
+if [ "$1" = "-v" ] && [ $# -ne 3 ]; then
         usage
 fi
 
@@ -291,7 +291,7 @@ parted -s $DEVICE mkpart primary $ROOTFS_START $ROOTFS_END >$OUT 2>&1 || die "Fa
 #ROOTFS_PARTUUID=$(blkid |grep -e "$ROOTFS" |sed -n 's/^.*PARTUUID=/PARTUUID=/p')
 export LC_ALL=C
 ROOTFS_DISKID=$(fdisk -l "$DEVICE" | grep -e "Disk identifier" | sed -n 's/^.*Disk identifier: 0x/PARTUUID=/p')
-if [ $ROOTFS_DISKID == "" ]; then
+if [ $ROOTFS_DISKID = "" ]; then
     die "Failed to read DISKID"
 fi
 ROOTFS_PARTUUID="$ROOTFS_DISKID-02"
@@ -382,8 +382,8 @@ if [ -e "$SYSTEMDBOOT_CFG" ]; then
 	sed -i "s/ LABEL=[^ ]*/ /" $SYSTEMDBOOT_BOOT
 
 	sed -i "s@ root=[^ ]*@ @" $SYSTEMDBOOT_BOOT
-	sed -i "s@options @options root=$ROOTFS_PARTUUID @" $SYSTEMDBOOT_BOOT	
-fi	
+	sed -i "s@options @options root=$ROOTFS_PARTUUID @" $SYSTEMDBOOT_BOOT
+fi
 
 
 # Ensure we have at least one EFI bootloader configured
