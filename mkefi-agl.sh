@@ -143,6 +143,7 @@ unmount_device() {
 	if [ $? -eq 0 ]; then
 		warn "$DEVICE listed in /proc/mounts, attempting to unmount"
 		umount $DEVICE* 2>/dev/null
+		! grep -q $DEVICE /proc/mounts && info "Unmounted successfully"
 		return $?
 	fi
 	return 0
