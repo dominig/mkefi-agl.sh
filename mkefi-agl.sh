@@ -392,7 +392,11 @@ if [ ! -e $GRUB_CFG ]  && [ ! -e $SYSTEMDBOOT_CFG ] ; then
 fi
 
 info "Copying ROOTFS files (this may take a while)"
-cp -a $HDDIMG_ROOTFS_MNT/* $ROOTFS_MNT >$OUT 2>&1 || die "Root FS copy failed"
+if [ $DEBUG -eq 1 ]; then
+	rsync --info=progress2 -a $HDDIMG_ROOTFS_MNT/* $ROOTFS_MNT 2>&1 || die "Root FS copy failed"
+else
+	cp -a $HDDIMG_ROOTFS_MNT/* $ROOTFS_MNT >$OUT 2>&1 || die "Root FS copy failed"
+fi
 
 # We dont want udev to mount our root device while we're booting...
 if [ -d $ROOTFS_MNT/etc/udev/ ] ; then
