@@ -395,7 +395,7 @@ fi
 info "Copying ROOTFS files (this may take a while)"
 command -v rsync >/dev/null 2>&1 # check if rsync exists
 if [ $DEBUG -eq 1 ] && [ $? -eq 0 ]; then
-	rsync --info=progress2 -a $HDDIMG_ROOTFS_MNT/* $ROOTFS_MNT 2>&1 || die "Root FS copy failed"
+	rsync --info=progress2 -h -aHAXW --no-compress  $HDDIMG_ROOTFS_MNT/* $ROOTFS_MNT 2>&1 || die "Root FS copy failed"
 else
 	cp -a $HDDIMG_ROOTFS_MNT/* $ROOTFS_MNT >$OUT 2>&1 || die "Root FS copy failed"
 fi
