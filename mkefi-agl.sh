@@ -17,7 +17,7 @@
 # along with this program;  if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
-# Modification from mkefidisk.sh provided by the Yocto project by Dominig 
+# Modification from mkefidisk.sh provided by the Yocto project by Dominig
 # to install Automotive Grade Linux (AGL) on Minnowboard and any PC with UEFI boot
 #
 # changes
@@ -26,13 +26,13 @@
 #         - create a grub config with PARTUID to ease boot from various devices automaticaly
 #         - add a UEFI startup.nsh script for autoboot
 #         - does not allocate swap
-#         
+#
 
 LANG=C
 
 # Set to 1 to enable additional output
 DEBUG=0
-OUT="/dev/null"
+exec 3>/dev/null
 
 #
 # Defaults
@@ -143,6 +143,7 @@ unmount_device() {
 	if [ $? -eq 0 ]; then
 		warn "$DEVICE listed in /proc/mounts, attempting to unmount"
 		umount $DEVICE* 2>/dev/null
+		! grep -q $DEVICE /proc/mounts && info "Unmounted successfully"
 		return $?
 	fi
 	return 0
@@ -156,6 +157,7 @@ unmount() {
 	if [ $? -eq 0 ]; then
 		debug "Unmounting $1"
 		umount $1
+		! grep -q $1 /proc/mounts # check if unmounted successfully
 		return $?
 	fi
 	return 0
@@ -167,13 +169,13 @@ unmount() {
 if [ "$1" != "-v" ] && [ $# -ne 2 ]; then
         usage
 fi
-if [ "$1" == "-v" ] && [ $# -ne 3 ]; then
+if [ "$1" = "-v" ] && [ $# -ne 3 ]; then
         usage
 fi
 
 if [ "$1" = "-v" ] ; then
 	DEBUG=1
-	OUT="1"
+	exec 3>&1
 	shift
 fi
 
@@ -273,25 +275,25 @@ echo ""
 info "Partitioning installation media ($DEVICE)"
 
 debug "Deleting partition table on $DEVICE"
-dd if=/dev/zero of=$DEVICE bs=512 count=2 >$OUT 2>&1 || die "Failed to zero beginning of $DEVICE"
+dd if=/dev/zero of=$DEVICE bs=512 count=2 1>&3 2>&1 || die "Failed to zero beginning of $DEVICE"
 
 debug "Creating new partition table (MSDOS) on $DEVICE"
-parted -s $DEVICE mklabel msdos >$OUT 2>&1 || die "Failed to create MSDOS partition table"
+parted -s $DEVICE mklabel msdos 1>&3 2>&1 || die "Failed to create MSDOS partition table"
 
 debug "Creating boot partition on $BOOTFS"
-parted -s $DEVICE mkpart primary 0% $BOOT_SIZE >$OUT 2>&1 || die "Failed to create BOOT partition"
+parted -s $DEVICE mkpart primary 0% $BOOT_SIZE 1>&3 2>&1 || die "Failed to create BOOT partition"
 
 debug "Enabling boot flag on $BOOTFS"
-parted -s $DEVICE set 1 boot on >$OUT 2>&1 || die "Failed to enable boot flag"
+parted -s $DEVICE set 1 boot on 1>&3 2>&1 || die "Failed to enable boot flag"
 
 debug "Creating ROOTFS partition on $ROOTFS"
-parted -s $DEVICE mkpart primary $ROOTFS_START $ROOTFS_END >$OUT 2>&1 || die "Failed to create ROOTFS partition"
+parted -s $DEVICE mkpart primary $ROOTFS_START $ROOTFS_END 1>&3 2>&1 || die "Failed to create ROOTFS partition"
 
 # as blkid does not provide PARTUUID on Ubuntu LTS 14.04 we myst hack via fdisk
 #ROOTFS_PARTUUID=$(blkid |grep -e "$ROOTFS" |sed -n 's/^.*PARTUUID=/PARTUUID=/p')
 export LC_ALL=C
 ROOTFS_DISKID=$(fdisk -l "$DEVICE" | grep -e "Disk identifier" | sed -n 's/^.*Disk identifier: 0x/PARTUUID=/p')
-if [ $ROOTFS_DISKID == "" ]; then
+if [ $ROOTFS_DISKID = "" ]; then
     die "Failed to read DISKID"
 fi
 ROOTFS_PARTUUID="$ROOTFS_DISKID-02"
@@ -314,35 +316,35 @@ unmount_device || die "Failed to unmount $DEVICE partitions"
 info "Formatting partitions"
 debug "Formatting $BOOTFS as vfat"
 if [ ! "${DEVICE#/dev/loop}" = "${DEVICE}" ]; then
-	mkfs.vfat -I $BOOTFS -n "EFI" >$OUT 2>&1 || die "Failed to format $BOOTFS"
+	mkfs.vfat -I $BOOTFS -n "EFI" 1>&3 2>&1 || die "Failed to format $BOOTFS"
 else
-	mkfs.vfat $BOOTFS -n "EFI" >$OUT 2>&1 || die "Failed to format $BOOTFS"
+	mkfs.vfat $BOOTFS -n "EFI" 1>&3 2>&1 || die "Failed to format $BOOTFS"
 fi
 
 debug "Formatting $ROOTFS as ext4"
-mkfs.ext4 -F $ROOTFS -L "ROOT" >$OUT 2>&1 || die "Failed to format $ROOTFS"
+mkfs.ext4 -F $ROOTFS -L "ROOT" 1>&3 2>&1 || die "Failed to format $ROOTFS"
 
 
 #
 # Installing to $DEVICE
 #
 debug "Mounting images and device in preparation for installation"
-mount -o loop $HDDIMG $HDDIMG_MNT >$OUT 2>&1 || error "Failed to mount $HDDIMG"
-mount -o loop $HDDIMG_MNT/rootfs.img $HDDIMG_ROOTFS_MNT >$OUT 2>&1 || error "Failed to mount rootfs.img"
-mount $ROOTFS $ROOTFS_MNT >$OUT 2>&1 || error "Failed to mount $ROOTFS on $ROOTFS_MNT"
-mount $BOOTFS $BOOTFS_MNT >$OUT 2>&1 || error "Failed to mount $BOOTFS on $BOOTFS_MNT"
+mount -o loop $HDDIMG $HDDIMG_MNT 1>&3 2>&1 || error "Failed to mount $HDDIMG"
+mount -o loop $HDDIMG_MNT/rootfs.img $HDDIMG_ROOTFS_MNT 1>&3 2>&1 || error "Failed to mount rootfs.img"
+mount $ROOTFS $ROOTFS_MNT 1>&3 2>&1 || error "Failed to mount $ROOTFS on $ROOTFS_MNT"
+mount $BOOTFS $BOOTFS_MNT 1>&3 2>&1 || error "Failed to mount $BOOTFS on $BOOTFS_MNT"
 
 info "Preparing boot partition"
 EFIDIR="$BOOTFS_MNT/EFI/BOOT"
-cp $HDDIMG_MNT/vmlinuz $BOOTFS_MNT >$OUT 2>&1 || error "Failed to copy vmlinuz"
+cp $HDDIMG_MNT/vmlinuz $BOOTFS_MNT 1>&3 2>&1 || error "Failed to copy vmlinuz"
 if [ -f $HDDIMG_MNT/initrd ]; then
-  cp $HDDIMG_MNT/initrd $BOOTFS_MNT >$OUT 2>&1 || error "Failed to copy initrd"
+  cp $HDDIMG_MNT/initrd $BOOTFS_MNT 1>&3 2>&1 || error "Failed to copy initrd"
 fi
 echo "bootx64.efi" > $BOOTFS_MNT/startup.nsh || error "Failed to create startup.nsh"
 # Copy the efi loader and configs (booti*.efi and grub.cfg if it exists)
-cp -r $HDDIMG_MNT/EFI $BOOTFS_MNT >$OUT 2>&1 || error "Failed to copy EFI dir"
+cp -r $HDDIMG_MNT/EFI $BOOTFS_MNT 1>&3 2>&1 || error "Failed to copy EFI dir"
 # Silently ignore a missing systemd-boot or gummiboot loader dir (we might just be a GRUB image)
-cp -r $HDDIMG_MNT/loader $BOOTFS_MNT >$OUT 2>&1
+cp -r $HDDIMG_MNT/loader $BOOTFS_MNT 1>&3 2>&1
 
 # Update the boot loaders configurations for an installed image
 # Remove any existing root= kernel parameters and:
@@ -373,7 +375,7 @@ if [ -e "$SYSTEMDBOOT_CFG" ]; then
     SYSTEMDBOOT_DEBUG="$BOOTFS_MNT/loader/entries/debug.conf"
     # Delete the install entry
 	sed -i "/menuentry 'install'/,/^}/d" $SYSTEMDBOOT_CFG
-	rm -rf "$BOOTFS_MNT/loader/entries/install.conf" >$OUT 2>&1
+	rm -rf "$BOOTFS_MNT/loader/entries/install.conf" 1>&3 2>&1
 	# Add PARTUUID to the boot entry file
 	if [ ! -e "$SYSTEMDBOOT_BOOT" ]; then
         die "no boot.conf entry found in systemd-boot directories"
@@ -382,8 +384,8 @@ if [ -e "$SYSTEMDBOOT_CFG" ]; then
 	sed -i "s/ LABEL=[^ ]*/ /" $SYSTEMDBOOT_BOOT
 
 	sed -i "s@ root=[^ ]*@ @" $SYSTEMDBOOT_BOOT
-	sed -i "s@options @options root=$ROOTFS_PARTUUID @" $SYSTEMDBOOT_BOOT	
-fi	
+	sed -i "s@options @options root=$ROOTFS_PARTUUID @" $SYSTEMDBOOT_BOOT
+fi
 
 
 # Ensure we have at least one EFI bootloader configured
@@ -392,7 +394,12 @@ if [ ! -e $GRUB_CFG ]  && [ ! -e $SYSTEMDBOOT_CFG ] ; then
 fi
 
 info "Copying ROOTFS files (this may take a while)"
-cp -a $HDDIMG_ROOTFS_MNT/* $ROOTFS_MNT >$OUT 2>&1 || die "Root FS copy failed"
+command -v rsync >/dev/null 2>&1 # check if rsync exists
+if [ $DEBUG -eq 1 ] && [ $? -eq 0 ]; then
+	rsync --info=progress2 -h -aHAXW --no-compress  $HDDIMG_ROOTFS_MNT/* $ROOTFS_MNT 1>&3 2>&1 || die "Root FS copy failed"
+else
+	cp -a $HDDIMG_ROOTFS_MNT/* $ROOTFS_MNT 1>&3 2>&1 || die "Root FS copy failed"
+fi
 
 # We dont want udev to mount our root device while we're booting...
 if [ -d $ROOTFS_MNT/etc/udev/ ] ; then
