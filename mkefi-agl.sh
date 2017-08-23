@@ -157,6 +157,7 @@ unmount() {
 	if [ $? -eq 0 ]; then
 		debug "Unmounting $1"
 		umount $1
+		! grep -q $1 /proc/mounts # check if unmounted successfully
 		return $?
 	fi
 	return 0
