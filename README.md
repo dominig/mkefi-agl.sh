@@ -28,3 +28,6 @@ mkabl-agl.sh [-v] [-p path_to_iasImage_tool] HDDIMG REMOVABLE_DEVICE
 
 ## Documentation
 Additional documentation: https://wiki.automotivelinux.org/agl-distro/developer_resources_intel
+
+## opensafe.sh closesafe.sh
+2 small bash scripts helping management of encrypted directory using encfs fuse module
