@@ -31,3 +31,19 @@ Additional documentation: https://wiki.automotivelinux.org/agl-distro/developer_
 
 ## opensafe.sh closesafe.sh
 2 small bash scripts helping management of encrypted directory using encfs fuse module
+  encrypted dir are created with an auto close timeout of 30mn
+  dependency: fusefs encfs
+Usage:
+ Intialisation
+    create a directory (e.g. MyDir) in $HOME
+ Opening safe
+  opensafe.sh MyDir
+      first time
+         you will be asked password and configuration questions
+         Note: quick paranoid mode is not compatible with hard link
+               manual setup is required to support hardlinks
+  copy/delete/modify files in MyDir
+ Closing safe
+  closesafe.sh MyDir
+
+Encrypted dir is created automatically and is name .MyDir

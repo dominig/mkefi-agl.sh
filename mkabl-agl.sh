@@ -196,8 +196,8 @@ fi
 
 IAS_IMAGE_TOOL="$IAS_PATH$IAS_EXE"
 debug "iasImage tool is: $IAS_IMAGE_TOOL"
-if [ ! -x $IAS_IMAGE_TOOL ]; then
-   die "$IAS_IMAGE_TOOL is not executablei or path is incorrect"
+if  [ hash $IAS_IMAGE_TOOL 2>/dev/null ne 0 ]; then
+   die "$IAS_IMAGE_TOOL is not executable or not pointed by the path"
 fi
 
 HDDIMG=$1
