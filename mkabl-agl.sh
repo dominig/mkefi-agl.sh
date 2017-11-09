@@ -45,7 +45,7 @@ BOOT_SIZE=100
 MRB_DEBUG_TTY="ttyS2,115200n8"
 MRB_HDMI="HDMI-A-1:e"
 #
-IAS_PATH=""
+IAS_PATH="./"
 IAS_EXE="ias_image_app"
 IAS_CMD_LINE=/tmp/iasCommandLine.cmd
 
