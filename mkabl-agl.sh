@@ -196,8 +196,9 @@ fi
 
 IAS_IMAGE_TOOL="$IAS_PATH$IAS_EXE"
 debug "iasImage tool is: $IAS_IMAGE_TOOL"
-if  [ hash $IAS_IMAGE_TOOL 2>/dev/null ne 0 ]; then
-   die "$IAS_IMAGE_TOOL is not executable or not pointed by the path"
+which $IAS_IMAGE_TOOL > IAS_IMAGE_TOOL_PATH
+if  [ ! -x "$(command -v $IAS_IMAGE_TOOL)" ]; then
+   die "$IAS_IMAGE_TOOL not found pointed by the path via 'sudo; use -p option'"
 fi
 
 HDDIMG=$1
