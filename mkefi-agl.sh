@@ -25,7 +25,7 @@
 #         - keep initrd if present
 #         - create a grub config with PARTUID to ease boot from various devices automaticaly
 #         - add a UEFI startup.nsh script for autoboot
-#         - does not allocate swap
+#         - remove any configured swap is fstab
 #         - accept .hddimg, wic and wic.xz as sources
 
 LANG=C
@@ -488,6 +488,8 @@ if [ $DEBUG -eq 1 ] && [ $? -eq 0 ]; then
 else
 	cp -a $HDDIMG_ROOTFS_MNT/* $ROOTFS_MNT 1>&3 2>&1 || die "Root FS copy failed"
 fi
+debug "removing any swap entry in /etc/fstab"
+sed --in-place '/swap/d' $ROOTFS_MNT/etc/fstab 
 
 printf "flushing data on removable device. May take a while ... "
 sync --file-system $ROOTFS_MNT
