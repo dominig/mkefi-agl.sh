@@ -28,6 +28,7 @@
 #         - simpler use model
 #         - keep initrd if present
 #         - does not allocate swap
+#         - accept .hddimg, wic and wic.xz as sources
 #
 
 LANG=C
@@ -41,6 +42,10 @@ exec 3>/dev/null
 #
 # 100 Mb for the boot partition
 BOOT_SIZE=100
+# min available space on TMP_DIR for uncompressing xz image in kB e.g. 5G (5000000)
+TMP_SIZE_MIN=5000000
+# TMP_DIR directory use for holding image file for uncompression (e.g. /tmp or $HOME)
+TMP_DIR=/tmp
 #
 MRB_DEBUG_TTY="ttyS2,115200n8"
 MRB_HDMI="HDMI-A-1:e"
@@ -57,12 +62,18 @@ cleanup() {
 	unmount $BOOTFS_MNT || error "Failed to unmount $BOOTFS_MNT"
 	unmount $HDDIMG_ROOTFS_MNT || error "Failed to unmount $HDDIMG_ROOTFS_MNT"
 	unmount $HDDIMG_MNT || error "Failed to unmount $HDDIMG_MNT"
-
+	if [ "$IMG_TYPE" = "DISK" ]; then
+        debug "de-attaching loop devices"
+        for LOOP_DEVICE in `losetup --list |grep $HDDIMG | cut -d" " -f1` ; do
+           losetup -d $LOOP_DEVICE  1>&3 2>&1 || error "Detaching $LOOP_DEVICE from $HDDIMG failled"
+        done   
+     fi
 	# Remove the TMPDIR
 	debug "Removing temporary files"
 	if [ -d "$TMPDIR" ]; then
 		rm -rf $TMPDIR || error "Failed to remove $TMPDIR"
 	fi
+    [ -f "$TMP_DIR/TMP-AGL-wic-image.wic" ] || rm -f $TMP_DIR/TMP-AGL-wic-image.wic
 }
 
 trap 'die "Signal Received, Aborting..."' HUP INT TERM
@@ -109,9 +120,12 @@ usage() {
 	echo "       -v: Verbose debug"
         echo "       path_to_iasImage_tool: path the iasImage tool provided by Intel."
 	echo "       HDDIMG: The hddimg file to generate the efi disk from"
+    echo "               Supported formats are .hddimg, .wic .wic.xz"
 	echo "       REMOVABLE_DEVICE: The block device to write the image to, e.g. /dev/sdh"
 	echo "ex:"
-	echo "   mkabl-agl.sh   agl-demo-platform-intel-corei7-64.hddimg /dev/sdd"
+	echo "   mkabl-agl.sh   agl-demo-platform-intel-corei7-64.wic.xz /dev/sdd"
+    echo "   mkabl-agl.sh   agl-demo-platform-intel-corei7-64.hddimg /dev/sdd"
+
         echo "                  assuming that iasImage is accessible via your default path"
 	exit 1
 }
@@ -220,12 +234,54 @@ fi
 if [ ! -e "$HDDIMG" ]; then
 	die "HDDIMG $HDDIMG does not exist"
 fi
-
+HDDIMG_EXT=${HDDIMG##*.}
+case $HDDIMG_EXT in
+  hddimg)
+     IMG_TYPE="MOUNT"
+     IMG_COMPRESS="NO"
+     debug "Detected: uncompressed image type .hddimg"
+     ;;
+  wic)
+     IMG_TYPE="DISK"
+     IMG_COMPRESS="NO"
+     debug "Detected: uncompressed image type .wic"
+     ;;
+  xz)
+     IMG_TYPE="DISK"
+     IMG_COMPRESS="YES"
+     debug "Detected: xz compressed image type .wic"
+     command -v xz >/dev/null 2>&1 || { die "xz command is not available, pleaes install xz package"; }
+     TMP_SIZE=`df -k $TMP_DIR | awk '/[0-9]%/{print $(NF-2)}'`
+     if [ "$TMP_SIZE" -lt "$TMP_SIZE_MIN" ]; then
+       die "Available space on $TMP_DIR must be at least $TMP_SIZE_MIN kB" 
+     fi
+     printf "Starting decompression of the image. It may take some time ..."
+     xz --decompress --keep --format=auto --force --threads=0 --stdout > $TMP_DIR/TMP-AGL-wic-image.wic  $HDDIMG|| \
+         die "xz command failled: xz --decompress --keep --format=auto --force --threads=0 --stdout > $TMP_DIR/TMP-AGL-wic-image.wic"
+     HDDIMG="$TMP_DIR/TMP-AGL-wic-image.wic"
+     echo "Image uncompressed, starting doing real work ..."
+     ;;
+  *)
+     die "Unsupported image format: $HDDIMG_EXT Supported format are .hddimg .wic wic.xz"
+     ;;
+esac
 #
 # Ensure the hddimg is not mounted
 #
-unmount "$HDDIMG" || die "Failed to unmount $HDDIMG"
-
+debug "will now try to umount /detach previous images"
+case $IMG_TYPE in
+  MOUNT)
+      unmount "$HDDIMG" || die "Failed to unmount $HDDIMG"
+      ;;
+  DISK)
+      [ `losetup --list |grep $HDDIMG | wc -l ` -gt 1 ] && die "Image mounted more than once, manual cleaning required see: losetup --list"
+      debug "ready to attach the wic image to aloop device"
+      LOOP_DEVICE=`losetup --find --show $HDDIMG`  && ( losetup -d $LOOP_DEVICE  1>&3 2>&1 || die "Detaching $LOOP_DEVICE from $HDDIMG failled")
+      ;;
+  *)
+      die "unknown image format $IMG_TYPE"
+      ;;
+esac
 #
 # Check if any $DEVICE partitions are mounted
 #
@@ -344,12 +400,27 @@ debug "Formatting $ROOTFS as ext4"
 mkfs.ext4 -F $ROOTFS -L "ROOT" 1>&3 2>&1 || die "Failed to format $ROOTFS"
 
 
+# Mounting image file system on loop devices
 #
-# Installing to $DEVICE
-#
-debug "Mounting images and device in preparation for installation"
-mount -o loop $HDDIMG $HDDIMG_MNT 1>&3 2>&1 || die "Failed to mount $HDDIMG"
-mount -o loop $HDDIMG_MNT/rootfs.img $HDDIMG_ROOTFS_MNT 1>&3 2>&1 || die "Failed to mount rootfs.img"
+case $IMG_TYPE in
+
+  MOUNT) 
+     debug "Mounting images and device in preparation for installation"
+     mount -o loop $HDDIMG $HDDIMG_MNT 1>&3 2>&1 || die "Failed to mount $HDDIMG"
+     mount -o loop $HDDIMG_MNT/rootfs.img $HDDIMG_ROOTFS_MNT 1>&3 2>&1 || die "Failed to mount rootfs.img"
+     ;;
+  DISK)
+     debug "Attaching image and mounting partitions then device in preparation for installation"
+     LOOP_DEVICE=`losetup --find` || die "Failled to find an available loop device see: losetup --find"
+     losetup -P $LOOP_DEVICE $HDDIMG  1>&3 2>&1 || die "Attaching $LOOP_DEVICE from $HDDIMG failled"
+     mount "$LOOP_DEVICE"p2  $HDDIMG_ROOTFS_MNT 1>&3 2>&1 || die "Failed to mount $LOOP_DEVICEp1 on $HDDIMG_ROOTFS_MNT"
+     mount "$LOOP_DEVICE"p1  $HDDIMG_MNT       1>&3 2>&1 || die "Failed to mount $LOOP_DEVICEp2 on $HDDIMG_MNT"
+     ;;
+  *)
+      die "unknown image format $IMG_TYPE"
+      ;;
+esac
+
 mount $ROOTFS $ROOTFS_MNT 1>&3 2>&1 || die "Failed to mount $ROOTFS on $ROOTFS_MNT"
 mount $BOOTFS $BOOTFS_MNT 1>&3 2>&1 || die "Failed to mount $BOOTFS on $BOOTFS_MNT"
 
@@ -371,24 +442,41 @@ echo "video=$MRB_HDMI" >> $IAS_CMD_LINE
 echo "i915.enable_initial_modeset=1" >> $IAS_CMD_LINE
 debug "temp config for iasImage is $IAS_CMD_LINE"
 
+if [ -f $HDDIMG_MNT/vmlinuz ]; then
+   KERNEL_TYPE="vmlinuz"
+   debug "kernel is vmlinuz"
+fi
+if [ -f $HDDIMG_MNT/bzimage ]; then
+   KERNEL_TYPE="bzimage"
+   debug "kernel is bzimage -> vmlinuz"
+fi
+[ -z $KERNEL_TYPE ] && die "Linux kernel type in $HDDIMG is unsupported"
+
 if [ -f $HDDIMG_MNT/initrd ]; 
   then
      info "creating ABL image with initramsfs"
-     debug "$IAS_IMAGE_TOOL -o  $BOOTFS_MNT/iasImage -i 0x30000 $IAS_CMD_LINE $HDDIMG_MNT/vmlinuz $HDDIMG_MNT/initrd"
-     $IAS_IMAGE_TOOL -o  $BOOTFS_MNT/iasImage -i 0x30000 $IAS_CMD_LINE $HDDIMG_MNT/vmlinuz $HDDIMG_MNT/initrd
+     debug "$IAS_IMAGE_TOOL -o  $BOOTFS_MNT/iasImage -i 0x30000 $IAS_CMD_LINE $HDDIMG_MNT/$KERNEL_TYPE $HDDIMG_MNT/initrd"
+     $IAS_IMAGE_TOOL -o  $BOOTFS_MNT/iasImage -i 0x30000 $IAS_CMD_LINE $HDDIMG_MNT/$KERNEL_TYPE $HDDIMG_MNT/initrd
   else
      info "creating ABL image without initramfs"
-     debug "$IAS_IMAGE_TOOL -o  $BOOTFS_MNT/iasImage -i 0x30000 $IAS_CMD_LINE $HDDIMG_MNT/vmlinuz"
-     $IAS_IMAGE_TOOL -o  $BOOTFS_MNT/iasImage -i 0x30000 $IAS_CMD_LINE $HDDIMG_MNT/vmlinuz
+     debug "$IAS_IMAGE_TOOL -o  $BOOTFS_MNT/iasImage -i 0x30000 $IAS_CMD_LINE $HDDIMG_MNT/$KERNEL_TYPE"
+     $IAS_IMAGE_TOOL -o  $BOOTFS_MNT/iasImage -i 0x30000 $IAS_CMD_LINE $HDDIMG_MNT/$KERNEL_TYPE
 fi     
 
-info "Copying ROOTFS files (this may take a while)"
+printf "Copying ROOTFS files ... "
 command -v rsync >/dev/null 2>&1 # check if rsync exists
 if [ $DEBUG -eq 1 ] && [ $? -eq 0 ]; then
 	rsync --info=progress2 -h -aHAXW --no-compress  $HDDIMG_ROOTFS_MNT/* $ROOTFS_MNT 1>&3 2>&1 || die "Root FS copy failed"
 else
 	cp -a $HDDIMG_ROOTFS_MNT/* $ROOTFS_MNT 1>&3 2>&1 || die "Root FS copy failed"
 fi
+
+debug "removing any swap entry in /etc/fstab"
+sed --in-place '/swap/d' $ROOTFS_MNT/etc/fstab 
+
+printf "flushing data on removable device. May take a while ... "
+sync --file-system $ROOTFS_MNT
+echo done
 
 # We dont want udev to mount our root device while we're booting...
 if [ -d $ROOTFS_MNT/etc/udev/ ] ; then

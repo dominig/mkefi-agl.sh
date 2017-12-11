@@ -177,6 +177,7 @@ def main():
     except IOError:
         print ('error: Cannot open', a.file)
         exit (1) 
+    print ('Creating NON signed Linux Kernel for ABL')
     img = multi_image(data)
     try:
         open (a.output, 'wb').write (img)
