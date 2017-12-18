@@ -450,6 +450,9 @@ if [ -f $HDDIMG_MNT/bzimage ]; then
    KERNEL_TYPE="bzimage"
    debug "kernel is bzimage -> vmlinuz"
 fi
+if [ -f $HDDIMG_MNT/microcode.cpio ]; then
+    die "initrd=microcode.cpio is not a supported configuration, change ycoto configuration or use an hddimg as source"
+fi
 [ -z $KERNEL_TYPE ] && die "Linux kernel type in $HDDIMG is unsupported"
 
 if [ -f $HDDIMG_MNT/initrd ]; 

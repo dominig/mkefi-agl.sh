@@ -450,7 +450,10 @@ if [ -e "$GRUB_CFG" ]; then
 	sed -i "/menuentry 'install'/,/^}/d" $GRUB_CFG
 	# Delete any LABEL= strings
 	sed -i "s/ LABEL=[^ ]*/ /" $GRUB_CFG
-
+        # detect config initrd=microcode.cpio
+        if  grep -q microcode $GRUB_CFG; then
+            warn "initrd=microcode.cpio detected, might not work on all boot configurations"
+        fi
 	sed -i "s@ root=[^ ]*@ @" $GRUB_CFG
 	sed -i "s@vmlinuz @vmlinuz root=$ROOTFS_PARTUUID @" $GRUB_CFG
 fi
@@ -470,7 +473,10 @@ if [ -e "$SYSTEMDBOOT_CFG" ]; then
     fi
 	# Delete any LABEL= strings
 	sed -i "s/ LABEL=[^ ]*/ /" $SYSTEMDBOOT_BOOT
-
+        # detect config initrd=microcode.cpio
+        if  grep -q microcode $SYSTEMDBOOT_BOOT; then
+            warn "initrd=microcode.cpio detected, might not work on all boot configurations"
+        fi
 	sed -i "s@ root=[^ ]*@ @" $SYSTEMDBOOT_BOOT
 	sed -i "s@options @options root=$ROOTFS_PARTUUID @" $SYSTEMDBOOT_BOOT
 fi
