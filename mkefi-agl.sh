@@ -415,9 +415,13 @@ if [ -f $HDDIMG_MNT/vmlinuz ]; then
    debug "kernel is vmlinuz"
 fi
 if [ -f $HDDIMG_MNT/bzimage ]; then
-   cp $HDDIMG_MNT/bzimage $BOOTFS_MNT 1>&3 2>&1 || die "Failed to copy vmlinuz"
+   cp $HDDIMG_MNT/bzimage $BOOTFS_MNT 1>&3 2>&1 || die "Failed to copy bzimage"
    KERNEL_TYPE="BZIMAGE"
    debug "kernel is bzimage"
+fi
+if [ -f $HDDIMG_MNT/microcode.cpio ]; then
+   cp $HDDIMG_MNT/microcode.cpio $BOOTFS_MNT 1>&3 2>&1 || die "Failed to copy microcode.cpio"
+   debug "microcode.cpio copied"
 fi
 [ -z $KERNEL_TYPE ] && die "Linux kernel type in $HDDIMG is unsupported"
 
