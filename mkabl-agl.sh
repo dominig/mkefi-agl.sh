@@ -452,7 +452,6 @@ if [ -f $HDDIMG_MNT/bzimage ]; then
 fi
 if [ -f $HDDIMG_MNT/microcode.cpio ]; then
      warn "initrd=microcode.cpio is not a supported configuration, microcode.cpio has been ignored"
-     KERNEL_TYPE="bzimage"
 fi
 [ -z $KERNEL_TYPE ] && die "Linux kernel type in $HDDIMG is unsupported"
 
