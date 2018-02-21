@@ -307,14 +307,14 @@ ROOTFS_END=$((ROOTFS_START+ROOTFS_SIZE))
 
 # MMC devices use a partition prefix character 'p'
 PART_PREFIX=""
-if [ ! "${DEVICE#/dev/mmcblk}" = "${DEVICE}" ] || [ ! "${DEVICE#/dev/loop}" = "${DEVICE}" ]; then
+if [ ! "${DEVICE#/dev/mmcblk}" = "${DEVICE}" ] || [ ! "${DEVICE#/dev/nvme0n}" = "${DEVICE}" ] || [ ! "${DEVICE#/dev/loop}" = "${DEVICE}" ]; then
 	PART_PREFIX="p"
 fi
 BOOTFS=$DEVICE${PART_PREFIX}1
 ROOTFS=$DEVICE${PART_PREFIX}2
 
 TARGET_PART_PREFIX=""
-if [ ! "${TARGET_DEVICE#/dev/mmcblk}" = "${TARGET_DEVICE}" ]; then
+if [ ! "${TARGET_DEVICE#/dev/mmcblk}" = "${TARGET_DEVICE}" ] || [ ! "${TARGET_DEVICE#/dev/nvme0n}" = "${TARGET_DEVICE}" ]; then
 	TARGET_PART_PREFIX="p"
 fi
 TARGET_ROOTFS=$TARGET_DEVICE${TARGET_PART_PREFIX}2
