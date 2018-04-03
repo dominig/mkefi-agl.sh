@@ -352,6 +352,7 @@ ROOTFS_DISKID=$(fdisk -l "$DEVICE" | grep -e "Disk identifier" | sed -n 's/^.*Di
 if [ $ROOTFS_DISKID = "" ]; then
     die "Failed to read DISKID"
 fi
+BOOTFS_PARTUUID="$ROOTFS_DISKID-01"
 ROOTFS_PARTUUID="$ROOTFS_DISKID-02"
 debug "PARTUUID for ROOTFS is $ROOTFS_PARTUUID"
 
@@ -500,6 +501,8 @@ else
 fi
 debug "removing any swap entry in /etc/fstab"
 sed --in-place '/swap/d' $ROOTFS_MNT/etc/fstab 
+debug "fixing PARTUUID for /boot"
+sed --in-place -e "s#PARTUUID=[0-9a-z-]\+\t/boot#${BOOTFS_PARTUUID}\t/boot#" $ROOTFS_MNT/etc/fstab
 
 printf "flushing data on removable device. May take a while ... "
 sync --file-system $ROOTFS_MNT
