@@ -396,8 +396,9 @@ case $IMG_TYPE in
      debug "Attaching image and mounting partitions then device in preparation for installation"
      LOOP_DEVICE=`losetup --find` || die "Failled to find an available loop device see: losetup --find"
      losetup -P $LOOP_DEVICE $HDDIMG  1>&3 2>&1 || die "Attaching $LOOP_DEVICE from $HDDIMG failled"
-     mount "$LOOP_DEVICE"p2  $HDDIMG_ROOTFS_MNT 1>&3 2>&1 || die "Failed to mount $LOOP_DEVICEp1 on $HDDIMG_ROOTFS_MNT"
-     mount "$LOOP_DEVICE"p1  $HDDIMG_MNT       1>&3 2>&1 || die "Failed to mount $LOOP_DEVICEp2 on $HDDIMG_MNT"
+     sleep 5
+     mount "$LOOP_DEVICE"p2  $HDDIMG_ROOTFS_MNT 1>&3 2>&1 || die "Failed to mount ${LOOP_DEVICE}p1 on $HDDIMG_ROOTFS_MNT"
+     mount "$LOOP_DEVICE"p1  $HDDIMG_MNT       1>&3 2>&1 || die "Failed to mount ${LOOP_DEVICE}p2 on $HDDIMG_MNT"
      ;;
   *)
       die "unknown image format $IMG_TYPE"
