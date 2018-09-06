@@ -64,7 +64,7 @@ cleanup() {
 	if [ -d "$TMPDIR" ]; then
 		rm -rf "$TMPDIR" || error "Failed to remove $TMPDIR"
 	fi
-        [ -f "$TMP_DIR/TMP-AGL-wic-image.wic" ] || rm -f $TMP_DIR/TMP-AGL-wic-image.wic
+        [ -f "$TMP_DIR/TMP-AGL-wic-image.wic" ] && rm -f $TMP_DIR/TMP-AGL-wic-image.wic
 }
 
 trap 'die "Signal Received, Aborting..."' HUP INT TERM
